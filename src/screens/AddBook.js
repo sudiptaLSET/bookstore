@@ -11,48 +11,49 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
-import React, {
-  act,
-  use,
-  useContext,
-  useEffect,
-  useReducer,
-  useState,
-} from "react";
+import React, { useContext, useEffect, useReducer, useState } from "react";
 import { RFValue } from "react-native-responsive-fontsize";
 import * as ImagePicker from "expo-image-picker";
 import BookContext from "../context/store";
 import { useNavigation } from "@react-navigation/native";
 import { useNotification } from "../context/NotificationContext";
+import CategoryModal from "../components/CategoryModal";
+import { useSelector,useDispatch} from "react-redux";
+import { edit, newAdd } from "../redux/book/bookSlice";
 
-const AddBook = () => {
+const AddBook = ({ route }) => {
+  const { showNotification } = useNotification();
+  const dispatcher = useDispatch();
+  const bookData = route.params;
 
-    const { showNotification } = useNotification();
+  const reduxbook = useSelector((state) => state.book.books);
+  // console.log("toEdit->", toEdit);
 
   const initialState = {
-    id: "",
-    etag: "",
-    kind: "",
+    id: bookData?.book?.id || "",
+    etag: bookData?.book?.etag || "",
+    kind: bookData?.book?.kind || "",
     volumeInfo: {
-      title: "",
-      description: "",
+      title: bookData?.book?.volumeInfo?.title || "",
+      description: bookData?.book?.volumeInfo?.description || "",
       imageLinks: {
-        thumbnail: "",
+        thumbnail: bookData?.book?.volumeInfo?.imageLinks?.thumbnail || "",
       },
-      authors: [],
-      categories: [],
-      contentVersion: "",
-      pageCount: "",
-      printType: "",
-      language: "",
-      previewLink: "",
+      publisher: bookData?.book?.volumeInfo?.publisher || "",
+      authors: bookData?.book?.volumeInfo?.authors || [],
+      categories: bookData?.book?.volumeInfo?.categories || [],
+      contentVersion: bookData?.book?.volumeInfo?.contentVersion || "",
+      pageCount: bookData?.book?.volumeInfo?.pageCount || "",
+      printType: bookData?.book?.volumeInfo?.printType || "",
+      language: bookData?.book?.volumeInfo?.language || "",
+      previewLink: bookData?.book?.volumeInfo?.previewLink || "",
     },
     saleInfo: {
-      buyLink: "",
-      country: "",
+      buyLink: bookData?.book?.saleInfo?.buyLink || "",
+      country: bookData?.book?.saleInfo?.country || "",
       listPrice: {
-        amount: "",
-        currencyCode: "",
+        amount: bookData?.book.saleInfo?.listPrice?.amount || "",
+        currencyCode: bookData?.book?.saleInfo?.listPrice?.currencyCode || "",
       },
     },
   };
@@ -121,10 +122,10 @@ const AddBook = () => {
 
   const [book, dispatch] = useReducer(bookReducer, initialState);
   const [isValid, setIsValid] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [category, setCategory] = useState("");
 
-  // console.log("vvvvv--->", book.saleInfo.listPrice.amount);
-
-  const { addBook } = useContext(BookContext);
+  // const { addBook } = useContext(BookContext);
 
   // Pick Image from Gallery
   const pickImage = async () => {
@@ -151,7 +152,7 @@ const AddBook = () => {
     }
   };
 
-  const validateForm = async() => {
+  const validateForm = async () => {
     const { volumeInfo, saleInfo } = book;
 
     const requiredFields = [
@@ -181,7 +182,7 @@ const AddBook = () => {
       }
     }
 
-    const onlyDigits = /^\d+$/;
+    const onlyDigits = /^\d*\.?\d+$/;
 
     if (!onlyDigits.test(volumeInfo.pageCount)) {
       Alert.alert("Page Count must contain only digits");
@@ -193,77 +194,92 @@ const AddBook = () => {
       return false;
     }
 
-      const previewLinkReachable = await checkIfReachable(volumeInfo?.previewLink);
+    const previewLinkReachable = await checkIfReachable(
+      volumeInfo?.previewLink
+    );
     if (!previewLinkReachable) {
-    Alert.alert("Preview Link is not reachable");
-    return false;
-  }
+      Alert.alert("Preview Link is not reachable");
+      return false;
+    }
 
-  const buyLinkReachable = await checkIfReachable(saleInfo?.buyLink);
-  if (!buyLinkReachable) {
-    Alert.alert("Buy Link is not reachable");
-    return false;
-  }
+    const buyLinkReachable = await checkIfReachable(saleInfo?.buyLink);
+    if (!buyLinkReachable) {
+      Alert.alert("Buy Link is not reachable");
+      return false;
+    }
 
     return true;
   };
 
-
-const checkIfReachable = async (url) => {
-  if (!url) {
-    console.log("Preview link is empty");
-    return false;
-  }
-
-  try {
-    const response = await fetch(url, { method: "HEAD" });
-    if (response.ok) {
-      // console.log("URL is reachable", response.ok);
-      return true;
-    } else {
-      // console.log("URL is not reachable", response.ok);
+  const checkIfReachable = async (url) => {
+    if (!url) {
+      console.log("Preview link is empty");
       return false;
     }
-  } catch (err) {
-    console.log("Error reaching URL:", err);
-    return false;
-  }
-};
 
+    try {
+      const response = await fetch(url, { method: "HEAD" });
+      if (response.ok) {
+        // console.log("URL is reachable", response.ok);
+        return true;
+      } else {
+        // console.log("URL is not reachable", response.ok);
+        return false;
+      }
+    } catch (err) {
+      console.log("Error reaching URL:", err);
+      return false;
+    }
+  };
 
-
-const isFormValid =
-book?.volumeInfo?.title &&
-book.volumeInfo.description &&
-book.volumeInfo.imageLinks.thumbnail &&
-book.volumeInfo.authors &&
-book.volumeInfo.categories &&
-book.volumeInfo.contentVersion &&
-book.volumeInfo.pageCount &&
-book.volumeInfo.printType &&
-book.volumeInfo.language &&
-book.volumeInfo.previewLink &&
-book.id &&
-book.etag &&
-book.kind &&
-book.saleInfo.buyLink &&
-book.saleInfo.country &&
-book.saleInfo.listPrice.currencyCode &&
-book.saleInfo.listPrice.amount &&
-checkIfReachable();
-
+  const isFormValid =
+    book?.volumeInfo?.title &&
+    book.volumeInfo.description &&
+    book.volumeInfo.imageLinks.thumbnail &&
+    book.volumeInfo.authors &&
+    book.volumeInfo.categories &&
+    book.volumeInfo.contentVersion &&
+    book.volumeInfo.pageCount &&
+    book.volumeInfo.printType &&
+    book.volumeInfo.language &&
+    book.volumeInfo.previewLink &&
+    book.id &&
+    book.etag &&
+    book.kind &&
+    book.saleInfo.buyLink &&
+    book.saleInfo.country &&
+    book.saleInfo.listPrice.currencyCode &&
+    book.saleInfo.listPrice.amount &&
+    checkIfReachable?.(book.volumeInfo.previewLink);
 
   const navigation = useNavigation();
   // Submit Product
-  const handleSubmit = async() => {
-    console.log("saved boook -------->", book);
+  const handleSubmit = async () => {
     const validation = await validateForm();
+    // console.log("saved boook -------->", validation);
     if (validation === true) {
-      addBook(book);
-      navigation.goBack();
-      showNotification("Book Added");
+      if (bookData) {
+        // console.log("Book sdsddds");
+        editSave();
+      } else {
+        console.log("Book Saved----->",book);
+        dispatcher(newAdd([book]));
+        navigation.navigate('Home');
+        showNotification("Book Added");
+      }
+
       // Alert.alert("Book added");
     }
+  };
+
+  
+  const editSave = () => {
+    console.log("toEdit--->",book);
+
+    dispatcher(edit(book));
+    showNotification("Book edited")
+    navigation.navigate('Home')
+
   };
 
   const handleVolumeChange = (key, value) => {
@@ -286,6 +302,8 @@ checkIfReachable();
     dispatch({ type: "SET_BOOK", payload: { [key]: value } });
   };
 
+  const items = ["Computers", "Business & Economics"];
+
   return (
     <SafeAreaView
       style={{
@@ -299,10 +317,10 @@ checkIfReachable();
       >
         <ScrollView contentContainerStyle={{ paddingHorizontal: RFValue(10) }}>
           <View style={styles.container}>
-            <Text style={styles.heading}>Add Book</Text>
+            <Text style={styles.heading}>{bookData ? "Edit" : "Add"} Book</Text>
 
             <View style={styles.fieldContainer}>
-              <Text>Book Title</Text>
+              <Text style={styles.inputHeading}>Book Title</Text>
               <TextInput
                 placeholder="Book Title"
                 value={book?.volumeInfo?.title}
@@ -313,7 +331,7 @@ checkIfReachable();
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>Publisher</Text>
+              <Text style={styles.inputHeading}>Publisher</Text>
               <TextInput
                 placeholder="Publisher"
                 style={styles.input}
@@ -324,7 +342,7 @@ checkIfReachable();
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>Buy Link</Text>
+              <Text style={styles.inputHeading}>Buy Link</Text>
               <TextInput
                 placeholder="Buy Link"
                 style={styles.input}
@@ -334,7 +352,7 @@ checkIfReachable();
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>Country</Text>
+              <Text style={styles.inputHeading}>Country</Text>
               <TextInput
                 placeholder="Country"
                 style={styles.input}
@@ -344,7 +362,7 @@ checkIfReachable();
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>Print Type</Text>
+              <Text style={styles.inputHeading}>Print Type</Text>
               <TextInput
                 placeholder="Print Type"
                 style={styles.input}
@@ -354,7 +372,7 @@ checkIfReachable();
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>Content Version</Text>
+              <Text style={styles.inputHeading}>Content Version</Text>
               <TextInput
                 placeholder="Content Version"
                 style={styles.input}
@@ -366,7 +384,7 @@ checkIfReachable();
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>Description</Text>
+              <Text style={styles.inputHeading}>Description</Text>
               <TextInput
                 placeholder="Description"
                 style={[styles.input, { height: 80 }]}
@@ -378,7 +396,7 @@ checkIfReachable();
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>Preview Link</Text>
+              <Text style={styles.inputHeading}>Preview Link</Text>
               <TextInput
                 placeholder="Preview Link"
                 style={[styles.input, { height: 80 }]}
@@ -390,7 +408,9 @@ checkIfReachable();
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>Kind</Text>
+              {/* <TouchableOpacity onPress={() => setShowModal(true)}> */}
+              <Text style={styles.inputHeading}>Kind</Text>
+              {/* </TouchableOpacity> */}
               <TextInput
                 placeholder="Kind"
                 style={[styles.input, { height: 80 }]}
@@ -402,7 +422,7 @@ checkIfReachable();
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>ID</Text>
+              <Text style={styles.inputHeading}>ID</Text>
               <TextInput
                 placeholder="id"
                 style={[styles.input, { height: 80 }]}
@@ -414,7 +434,7 @@ checkIfReachable();
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>E-tag</Text>
+              <Text style={styles.inputHeading}>E-tag</Text>
               <TextInput
                 placeholder="E-tag"
                 style={[styles.input, { height: 80 }]}
@@ -426,7 +446,7 @@ checkIfReachable();
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>Authors (comma separated)</Text>
+              <Text style={styles.inputHeading}>Authors (comma separated)</Text>
               <TextInput
                 placeholder="Authors (comma separated)"
                 style={styles.input}
@@ -441,33 +461,27 @@ checkIfReachable();
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>Categories (comma separated)</Text>
-              <TextInput
-                placeholder="Categories (comma separated)"
-                style={styles.input}
-                value={book.volumeInfo.categories.join(", ")}
-                onChangeText={(text) =>
-                  handleVolumeChange(
-                    "categories",
-                    text.split(",").map((c) => c.trim())
-                  )
-                }
-              />
+              <Text style={styles.inputHeading}>Categories</Text>
+              <TouchableOpacity onPress={() => setShowModal(true)}>
+                <Text placeholder="Categories" style={styles.input}>
+                  {book.volumeInfo.categories.join(", ") || "category"}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>Page Count</Text>
+              <Text style={styles.inputHeading}>Page Count</Text>
               <TextInput
                 placeholder="Page Count"
                 style={styles.input}
-                value={book.volumeInfo.pageCount}
+                value={book?.volumeInfo?.pageCount.toString()}
                 onChangeText={(text) => handleVolumeChange("pageCount", text)}
                 keyboardType="numeric"
               />
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>Language</Text>
+              <Text style={styles.inputHeading}>Language</Text>
               <TextInput
                 placeholder="Language"
                 style={styles.input}
@@ -477,18 +491,18 @@ checkIfReachable();
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>Amount</Text>
+              <Text style={styles.inputHeading}>Amount</Text>
               <TextInput
                 placeholder="Amount"
                 style={styles.input}
-                value={book.saleInfo.listPrice.amount}
+                value={book.saleInfo.listPrice.amount.toString()}
                 onChangeText={(text) => handleSaleChangeAmount("amount", text)}
                 keyboardType="numeric"
               />
             </View>
 
             <View style={styles.fieldContainer}>
-              <Text>Currency Code</Text>
+              <Text style={styles.inputHeading}>Currency Code</Text>
               <TextInput
                 placeholder="Currency Code"
                 style={styles.input}
@@ -507,7 +521,13 @@ checkIfReachable();
             )}
 
             <TouchableOpacity style={styles.imageButton} onPress={pickImage}>
-              <Text style={{ color: "#fff", fontWeight: "bold" }}>
+              <Text
+                style={{
+                  color: "#fff",
+                  fontWeight: "bold",
+                  fontSize: RFValue(14),
+                }}
+              >
                 Select Image
               </Text>
             </TouchableOpacity>
@@ -520,11 +540,29 @@ checkIfReachable();
               onPress={handleSubmit}
               // disabled={!isFormValid}
             >
-              <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                Save Product
+              <Text
+                style={{
+                  color: "#fff",
+                  fontWeight: "bold",
+                  fontSize: RFValue(14),
+                }}
+              >
+                Save
               </Text>
             </TouchableOpacity>
           </View>
+          {showModal && (
+            <CategoryModal
+              items={items}
+              onClick={() => setShowModal(false)}
+              showModal={showModal}
+              handleCategory={(category) => {
+                // handleField("kind", category);
+                handleVolumeChange("categories", [category]);
+                setShowModal(false);
+              }}
+            />
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -538,6 +576,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "",
     // borderWidth:1
+    // paddingVertical:RFValue(20)
   },
   heading: {
     fontSize: 24,
@@ -550,6 +589,9 @@ const styles = StyleSheet.create({
     padding: 10,
     // marginBottom: 15,
   },
+  inputHeading: {
+    fontSize: RFValue(14),
+  },
   input: {
     width: "100%",
     borderWidth: 1,
@@ -559,6 +601,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     backgroundColor: "#fff",
     marginTop: RFValue(5),
+    fontSize: RFValue(12),
   },
   image: {
     width: 150,
@@ -576,7 +619,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     backgroundColor: "green",
-    padding: 15,
+    padding: RFValue(10),
     borderRadius: 8,
     width: "100%",
     alignItems: "center",
