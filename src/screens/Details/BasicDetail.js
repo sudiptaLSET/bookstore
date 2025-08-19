@@ -2,25 +2,30 @@ import { View, Text, StyleSheet } from 'react-native'
 import React from 'react'
 import { RFValue } from 'react-native-responsive-fontsize';
 import { Bookid, Bookkind, Etag, NoData } from '../../constants/constant';
+import { Tabs } from "react-native-collapsible-tab-view";
 
 const BasicDetail = ({ book }) => {
 
   // console.log("book---> ", book);
   return (
+      <Tabs.ScrollView>
+    
     <View style={styles.container}>
       <View style={styles.textContainer}>
-        <Text style={styles.heading}>{Bookid}</Text>
-        <Text style={styles.detailText}>: {book?.id || `${NoData}`} </Text>
+        <Text style={styles.heading}>{Bookid} :</Text>
+        <Text style={styles.detailText}>{book?.id || `${NoData}`} </Text>
       </View>
        <View style={styles.textContainer}>
-        <Text style={styles.heading}>{Etag}</Text>
-        <Text style={styles.detailText}>: {book?.etag || `${NoData}`} </Text>
+        <Text style={styles.heading}>{Etag} :</Text>
+        <Text style={styles.detailText}>{book?.etag || `${NoData}`} </Text>
       </View>
        <View style={styles.textContainer}>
-        <Text style={styles.heading}>{Bookkind}</Text>
-        <Text style={styles.detailText}>: {book?.kind || `${NoData}`} </Text>
+        <Text style={styles.heading}>{Bookkind} :</Text>
+        <Text style={styles.detailText}>{book?.kind || `${NoData}`} </Text>
       </View>
     </View>
+      </Tabs.ScrollView>
+    
   )
 }
 
@@ -34,7 +39,7 @@ const styles = StyleSheet.create({
     fontSize: RFValue(14),
     fontWeight: 500,
     // borderWidth:1,
-    width:'30%'
+    // width:'30%'
   },
   textContainer: {
     flexDirection: 'row',

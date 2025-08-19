@@ -9,15 +9,17 @@ import {
 import React from "react";
 import { RFValue } from "react-native-responsive-fontsize";
 import { BuyLink, OpenLink } from "../../constants/constant";
+import { Tabs } from "react-native-collapsible-tab-view";
 
 const SaleInfo = ({ book }) => {
   return (
-    <ScrollView style={styles.container}>
+        <Tabs.ScrollView style={styles.container}>
+    
+    {/* <ScrollView style={styles.container}> */}
       <View style={styles.section}>
-        <View style={styles.headingContainer}>
-          <Text style={styles.heading}>{BuyLink}</Text>
-          <Text style={{ fontSize: RFValue(14) }}>:</Text>
-        </View>
+ 
+          <Text style={styles.heading}>{BuyLink} :</Text>
+     
         <TouchableOpacity
           onPress={() => Linking.openURL(book?.saleInfo?.buyLink)}
         >
@@ -28,16 +30,16 @@ const SaleInfo = ({ book }) => {
               fontSize: RFValue(14),
             }}
           >
+          
             {OpenLink}
           </Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
-        <View style={styles.headingContainer}>
-          <Text style={styles.heading}>Country</Text>
-          <Text style={{ fontSize: RFValue(14) }}>:</Text>
-        </View>
+   
+          <Text style={styles.heading}>Country :</Text>
+        
         <Text style={styles.detailText}>
           {book?.saleInfo?.country === "IN"
             ? "India"
@@ -46,22 +48,23 @@ const SaleInfo = ({ book }) => {
       </View>
 
       <View style={styles.section}>
-        <View style={styles.headingContainer}>
-          <Text style={styles.heading}>Amount</Text>
-          <Text style={{ fontSize: RFValue(14) }}>:</Text>
-        </View>
+
+          <Text style={styles.heading}>Amount :</Text>
+         
         <Text style={styles.detailText}>
           {book?.saleInfo?.listPrice?.amount}{" "}
           {`(${book?.saleInfo?.listPrice?.currencyCode})`}
         </Text>
       </View>
-    </ScrollView>
+      
+    {/* </ScrollView> */}
+          </Tabs.ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingVertical: 15,
     backgroundColor: "white",
   },
@@ -83,7 +86,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   detailText: {
-    fontSize: RFValue(12),
+    fontSize: RFValue(14),
     fontWeight: 300,
     color: "gey",
     // borderWidth:1,

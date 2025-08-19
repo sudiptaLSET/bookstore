@@ -9,26 +9,32 @@ import {
   Modal,
 } from "react-native";
 import React, { useState } from "react";
-import Ionicons from "react-native-vector-icons/dist/Ionicons";
-import AntDesign from "react-native-vector-icons/dist/AntDesign";
+import { Ionicons, AntDesign } from "@expo/vector-icons";
 import { RFValue } from "react-native-responsive-fontsize";
 import { useNavigation } from "@react-navigation/native";
-import { useNotification } from "../context/NotificationContext";
-
+// import { useNotification } from "../context/NotificationContext";
+import ToastModule from '../ToastBridge';
 const { height, width } = Dimensions.get("window");
 
 const HomeHeader = ({ onClick, category, onChange, onList, list }) => {
   const [show, setShow] = useState(false);
   const navigation = useNavigation();
-  const {showNotification} = useNotification();
   const image =
     "https://images.unsplash.com/photo-1678286742832-26543bb49959?w=400&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTh8fHVzZXJ8ZW58MHx8MHx8fDA%3D";
+
 
   return (
     <View style={styles.headerContainer}>
       <View style={styles.header}>
         <Text style={styles.headerText}>Hello Sudipta</Text>
-        <TouchableOpacity onPress={()=>showNotification("clicked")}>
+        <TouchableOpacity onPress={
+          // ()=>showNotification("clicked")
+          // ()=>
+          // ToastModule.show('Hello from native Android Toast!')
+          ()=>
+          navigation.navigate('Practice')
+          }
+          >
           <Image style={styles.headerImage} source={{ uri: image }} />
         </TouchableOpacity>
       </View>
@@ -41,7 +47,7 @@ const HomeHeader = ({ onClick, category, onChange, onList, list }) => {
           onChangeText={(text) => onChange(text)}
         ></TextInput>
 
-        {category === "" ? (
+        {category === "All" ? (
           <TouchableOpacity onPress={() => onClick()}>
             <Ionicons name="filter-outline" size={RFValue(20)} color="grey" />
           </TouchableOpacity>
@@ -75,7 +81,7 @@ const HomeHeader = ({ onClick, category, onChange, onList, list }) => {
 
 const styles = StyleSheet.create({
   headerContainer: {
-    marginBottom: 12,
+    // marginVertical: RFValue(20),
   },
   header: {
     // borderWidth: 1,

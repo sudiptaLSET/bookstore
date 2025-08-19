@@ -1,7 +1,7 @@
 import {
   View,
   Text,
-  SafeAreaView,
+  // SafeAreaView,
   FlatList,
   StyleSheet,
   Image,
@@ -14,15 +14,23 @@ import {
   ScrollView,
 } from "react-native";
 import axios from "axios";
-import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
-import Ionicons from "react-native-vector-icons/dist/Ionicons";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import HomeHeader from "../components/HomeHeader";
 import ListCard from "../components/ListCard";
 import { useNavigation } from "@react-navigation/native";
 import { RFValue } from "react-native-responsive-fontsize";
-import { useDispatch } from "react-redux";
-import { add } from "../redux/book/bookSlice";
-import BookContext from "../context/store";
+import { useDispatch, useSelector } from "react-redux";
+import { add, newAdd } from "../redux/book/bookSlice";
+// import BookContext from "../context/store";
+import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
+import CategoryModal from "../components/CategoryModal";
+import { useNotification } from "../context/NotificationContext";
 
 const { height, width } = Dimensions.get("window");
 
@@ -30,18 +38,21 @@ const HomeScreen = () => {
   const [books, setBooks] = useState([]);
   const [hasmore, setHasmore] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState("All");
   const [showModal, setShowmodal] = useState(false);
   const [text, setText] = useState("");
   const [list, setList] = useState(false);
-
   const [filtered, setFiltered] = useState([]);
+  const {showNotification} = useNotification();
+
 
   const navigation = useNavigation();
+
+  // const { book } = useContext(BookContext);
+  const reduxbook = useSelector((state) => state.book.books);
+
+
   const dispatch = useDispatch();
-
-
-  const { book } = useContext(BookContext);
 
   const start = useRef(0);
 
@@ -50,8 +61,8 @@ const HomeScreen = () => {
   }, []);
 
   const fetchData = useCallback(async () => {
+    // console.log(loading)
     if (!hasmore || loading) {
-      // console.log(loading)
       return;
     }
     setLoading(true);
@@ -62,13 +73,15 @@ const HomeScreen = () => {
           category === "" ? "SELECTED_CATEGORY" : category
         }&startIndex=${start.current}&maxResults=10`
       );
+      // console.log(result?.data?.items)
       if (result?.data?.items?.length > 0) {
-        setBooks((prev) => [...prev, ...result.data.items]);
-        setFiltered((prev) => [...prev, ...result.data.items]);
-        // console.log(books)
+        dispatch(add(result.data.items));
+        setFiltered(reduxbook);
+        setBooks(reduxbook)
         setLoading(false);
         start.current += 11;
       } else {
+        setLoading(false);
         setHasmore(false);
       }
     } catch (err) {
@@ -82,7 +95,6 @@ const HomeScreen = () => {
   const fillers = remainder === 0 ? [] : Array(numColumns - remainder).fill({});
   const paddedBooks = [...filtered, ...fillers];
 
-
   const renderItem = useCallback(
     ({ item, index }) => {
       return (
@@ -94,14 +106,24 @@ const HomeScreen = () => {
         />
       );
     },
-    [handleClick,list]
+    [handleClick, list]
   );
 
   const handleCategory = (category) => {
     setShowmodal(false);
     setCategory(category);
-    if (category === "") return;
-    fetchData();
+    if (category === "All") {
+      // console.log("All")
+      fetchData();
+      return;
+    } else {
+      const result = books.filter((item) =>
+        item?.volumeInfo?.categories?.includes(category)
+      );
+      // console.log("cattt--> ",result)
+
+      setFiltered(result);
+    }
   };
 
   const handleFilter = (inputText) => {
@@ -122,151 +144,77 @@ const HomeScreen = () => {
 
   const handleClick = useCallback(
     (book) => {
-      dispatch(add(book));
-      console.log('Book-->',book)
-      navigation.navigate("Detail", { book, title: book.volumeInfo.title });
+      if (Object.keys(book).length === 0) return;
+
+      // dispatch(add(book));
+      // console.log('Book-->',book)
+      navigation.navigate("Detail", { book, title: book?.volumeInfo?.title });
     },
     [navigation]
   );
 
-useEffect(() => {
-  if (book?.volumeInfo?.title) {
-    console.log("New book received in context:", book);
-    setBooks((prev) => [book, ...prev]);
-    setFiltered((prev) => [book, ...prev]);
-  }
-}, [book]);
+  // useEffect(() => {
+  //   // if (book?.volumeInfo?.title) {
+  //   // console.log("New book received in context:", book);
+  //   // setBooks((prev) => [...book, ...books]);
+  //   // setFiltered((prev) => [...book, ...books]);
+  //   dispatch(newAdd(book));
+    
+  //   // }
+  // }, [book]);
 
 
-  // console.log('listttt====>',list)
+  useEffect(()=>{
+      if(!hasmore){
+        showNotification("No more books 🥲")
+      }
+  },[hasmore]);
+
+
+  const items = ["All", "Computers", "Business & Economics"];
 
   return (
-    <SafeAreaView style={styles.container}>
-      {showModal && (
-        <Modal
-          transparent={true}
-          visible={showModal}
-          animationType="fade"
-          onRequestClose={() => setShowmodal(false)}
-        >
-          <TouchableWithoutFeedback onPress={() => setShowmodal(false)}>
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                <Text
-                  style={{
-                    fontSize: RFValue(18),
-                    marginBottom: 20,
-                    color: "#57564F",
-                  }}
-                >
-                  Categories
-                </Text>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.container}>
+        {showModal && (
+          <CategoryModal
+            onClick={() => setShowmodal(false)}
+            showModal={showModal}
+            handleCategory={(category) => handleCategory(category)}
+            items={items}
+          />
+        )}
 
-                <ScrollView style={{ width: "100%" ,}}>
-                  <TouchableOpacity
-                    onPress={() => handleCategory("")}
-                    style={{
-                      borderWidth: 1, 
-                      width: "100%",
-                      padding: 5,
-                      backgroundColor: "#FAF7F3",
-                      borderRadius: 0,
-                      marginBottom: 10,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        textAlign: "center",
-                        fontSize: RFValue(16),
-                        color: "grey",
-                        width: "100%",
-                      }}
-                    >
-                      All
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => handleCategory("Computers")}
-                    style={{
-                      borderWidth: 0,
-                      width: "100%",
-                      padding: 5,
-                      backgroundColor: "#FAF7F3",
-                      borderRadius: 0,
-                      marginBottom: 10,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        textAlign: "center",
-                        fontSize: RFValue(16),
-                        color: "grey",
-                        width: "100%",
-                      }}
-                    >
-                      Computers
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => handleCategory("Business & Economics")}
-                    style={{
-                      borderWidth: 0,
-                      width: "100%",
-                      padding: 5,
-                      backgroundColor: "#FAF7F3",
-                      borderRadius: 0,
-                      marginBottom: 10,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        textAlign: "center",
-                        fontSize: RFValue(16),
-                        color: "grey",
-                        width: "100%",
-                      }}
-                    >
-                      Business & Economics
-                    </Text>
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
-      )}
-
-      <HomeHeader
-        onClick={() => setShowmodal(true)}
-        category={category}
-        onChange={handleFilter}
-        onList={()=>setList(!list)}
-        list={list}
-      />
-     <FlatList
-  key={list ? 'list' : 'grid'} // 🔁 changes when layout toggles
-  numColumns={list ? 1 : (width < 720 ? 2 : 3)}
-  data={paddedBooks}
-  renderItem={renderItem}
-  keyExtractor={useCallback((item) => item.id, [])}
-  style={styles.listContainer}
-  contentContainerStyle={styles.contentContainerStyle}
-  onEndReached={text.length === 0 ? fetchData : null}
-  onEndReachedThreshold={0.1}
-  ListFooterComponent={loading && <ActivityIndicator />}
-  ListEmptyComponent={useCallback(
-    () => (
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 50, color: "white" }}>Loading...</Text>
-      </View>
-    ),
-    []
-  )}
-/>
-
-    </SafeAreaView>
+        <HomeHeader
+          onClick={() => setShowmodal(true)}
+          category={category}
+          onChange={handleFilter}
+          onList={() => setList(!list)}
+          list={list}
+        />
+        <FlatList
+          key={list ? "list" : "grid"} // 🔁 changes when layout toggles
+          numColumns={list ? 1 : width < 720 ? 2 : 3}
+          data={paddedBooks}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          style={styles.listContainer}
+          contentContainerStyle={styles.contentContainerStyle}
+          onEndReached={
+            text.length === 0 && category === "All" ? fetchData : null
+          }
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loading && <ActivityIndicator size="large" color="#FDFBEE" />
+          }
+        />
+        {/* {!hasmore && (
+          <Text style={{ fontSize: RFValue(20), textAlign: "center" }}>
+            No more book !
+          </Text>
+        )} */}
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 };
 
@@ -281,24 +229,11 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
+    marginTop: RFValue(8),
   },
   contentContainerStyle: {
-    marginHorizontal: 16,
+    marginHorizontal: 6,
     // paddingVertical:10
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: "#EFEEEA",
-    paddingVertical: 20,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    width: "80%",
-    alignItems: "center",
   },
 });
 

@@ -17,7 +17,7 @@ const ListCard = ({ book, onClick, list }) => {
   useEffect(() => {
     count.current += 1;
   }, [count.current]);
-  // console.log("list-->", list);
+  // console.log("list-->", book.volumeInfo);
 
   return (
     <TouchableOpacity
@@ -30,7 +30,8 @@ const ListCard = ({ book, onClick, list }) => {
           justifyContent: list ? "flex-start" : "center",
           paddingVertical: list ? RFValue(20) : RFValue(15),
           paddingHorizontal:list?RFValue(10):RFValue(10),
-          gap:list?RFValue(20):0
+          gap:list?RFValue(20):0,
+          backgroundColor:Object.keys(book).length===0?'#A0C878':'#FDFBEE',
         },
       ]}
       onPress={() => onClick(book)}
@@ -50,7 +51,7 @@ const ListCard = ({ book, onClick, list }) => {
         <Text style={[styles.cardTitle,{textAlign:list?'left':'center'}]} numberOfLines={2}>
           {book?.volumeInfo?.title}
         </Text>
-        <Text numberOfLines={2} style={[styles.author,{textAlign:list?'left':'center'}]}>
+        <Text numberOfLines={1} style={[styles.author,{textAlign:list?'left':'center'}]}>
           {book?.volumeInfo?.authors?.[0]}
         </Text>
       </View>
@@ -60,7 +61,7 @@ const ListCard = ({ book, onClick, list }) => {
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 0.5,
+    // borderWidth: 0.5,
     borderColor: "grey",
     margin: 10,
     flex: 1,

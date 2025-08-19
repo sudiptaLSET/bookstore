@@ -1,5 +1,5 @@
-import { StyleSheet, Text, View, SafeAreaView } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { StyleSheet, Text, View, SafeAreaView ,TouchableOpacity} from "react-native";
+import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import {
   createStackNavigator,
   CardStyleInterpolators,
@@ -7,18 +7,23 @@ import {
 import HomeScreen from "./src/screens/HomeScreen";
 import DetailScreen from "./src/screens/DetailScreen";
 import { store } from "./src/redux/store";
-import { Provider } from "react-redux";
+import { Provider, useSelector } from "react-redux";
 import WebScreen from "./src/screens/WebScreen";
 import Practice from "./src/screens/Practice";
 import AddBook from "./src/screens/AddBook";
-import BookProvider from "./src/context/BookProvider";
+// import BookProvider from "./src/context/BookProvider";
 import { NotificationProvider } from "./src/context/NotificationContext";
+import { Ionicons, AntDesign } from "@expo/vector-icons";
+import CollapsibleHeader from "./src/screens/CollapsibleHeader";
+
 const Stack = createStackNavigator();
 export default function App() {
+
+
   return (
     <Provider store={store}>
       <NotificationProvider>
-        <BookProvider>
+        {/* <BookProvider> */}
           <NavigationContainer>
             <Stack.Navigator>
               <Stack.Screen
@@ -29,12 +34,26 @@ export default function App() {
               <Stack.Screen
                 name="Detail"
                 component={DetailScreen}
-                options={({ route }) => ({
+                options={({ route ,navigation}) => ({
                   title: route.params?.title || "",
                   headerBackTitle: "",
+                  headerRight: () => {
+                    const book = route.params?.book;
+                    return (
+                    <TouchableOpacity
+                      onPress={()=>navigation.navigate('AddBook',{book})}
+                      style={{ marginRight: 15 }}
+                    >
+                      <Ionicons
+                        name="create-outline"
+                        size={30}
+                        color="#A0C878"
+                      />
+                    </TouchableOpacity>
+                    )
+                  },
                 })}
               />
-
               <Stack.Screen
                 name="WebScreen"
                 component={WebScreen}
@@ -58,14 +77,14 @@ export default function App() {
 
               <Stack.Screen
                 name="Practice"
-                component={Practice}
+                component={CollapsibleHeader}
                 options={({ route }) => ({
                   headerShown: false,
                 })}
               />
             </Stack.Navigator>
           </NavigationContainer>
-        </BookProvider>
+        {/* </BookProvider> */}
       </NotificationProvider>
     </Provider>
   );
